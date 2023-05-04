@@ -93,56 +93,6 @@ void State::draw() const
 		return;
 	}
 
-	//drawCell(Vec2(0, 0), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
-	//drawCell(Vec2(0, 0), Rect(0, 0, 32, 32), *mImage);
-	//drawCell(Vec2(0, 0), Rect(0, 0, mImage->width(), mImage->heigth()), *mImage);
-#if 0
-	auto getUnsigned = [](const char* p) {
-		const unsigned char* up;
-		up = reinterpret_cast<const unsigned char*>(p);
-		unsigned r = up[0];
-		r |= up[1] << 8;
-		r |= up[2] << 16;
-		r |= up[3] << 24;
-		return r;
-	};
-
-	char* buffer = nullptr;
-	int size = 0;
-	ifstream in("bar.dds", ifstream::binary);
-
-	in.seekg(0, ifstream::end);
-	size = static_cast<int>(in.tellg());
-	in.seekg(0, ifstream::beg);
-	buffer = new char[size];
-	in.read(buffer, size);
-
-	int h = getUnsigned(&(buffer[12]));
-	int w = getUnsigned(&(buffer[16]));
-	unsigned* data = new unsigned[w * h];
-	for (int i = 0; i < w * h; ++i) {
-		data[i] = getUnsigned(&(buffer[128 + i * 4]));
-	}
-#else
-	//Image img;
-	//File file("nimotsuKunImage.dds",IOMode::ReadOnly | IOMode::Binary);
-	//if (file.isValid()) {
-	//	img.loadFile(file);
-	//}
-	//int h = img.heigth();
-	//int w = img.width();
-	//const unsigned* data = img.data();
-#endif
-	//unsigned* vram = GameLib::Framework::instance().videoMemory();
-	//int canvasWidth = GameLib::Framework::instance().width();
-
-	//for (int iY = 0; iY < h; ++iY) {
-	//	for (int iX = 0; iX < w; ++iX) {
-	//		vram[iY * canvasWidth + iX] = data[iY * w + iX];
-	//	}
-	//}
-	//return;
-
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
 			const Object& obj = mObjects(x, y);
@@ -150,31 +100,24 @@ void State::draw() const
 			GameLib::cout << (int)mObjects(x, y).type << GameLib::endl;
 			switch (obj.type) {
 			case ObjectType::OBJ_SPACE:
-				//drawCell16(x, y, 0x000000);
-				//drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32,0,32,32), *mImage);
+				drawCell(Vec2(x, y), Vec2(32,32), 0x000000);
 				break;
 			case ObjectType::OBJ_WALL:
-				//drawCell16(x, y, 0xffffff);
 				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_POINT:
-				//drawCell16(x, y, 0xd9d919);
 				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_BLOCK:
 				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
-				//drawCell16(x, y, 0x0000ff);
 				break;
 			case ObjectType::OBJ_BLOCK_POINT:
-				//drawCell16(x, y, 0xd9da18);
 				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK_POINT) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_MAN:
-				//drawCell16(x, y, 0x556677);
 				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_MAN_POINT:
-				//drawCell16(x, y, 0xe2579e);
 				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
 				break;
 			default:
@@ -315,14 +258,14 @@ bool State::parseMap(const char* stageData, int size)
 	return true;
 }
 
-void State::drawCell16(int x, int y, unsigned color)const
+void State::drawCell(const Vec2& pos, const Vec2& size, unsigned color)const
 {
 	unsigned* vram = GameLib::Framework::instance().videoMemory();
-	int canvasWidth = GameLib::Framework::instance().width();
+	int windowWidth = GameLib::Framework::instance().width();
 
-	for (int iY = 0; iY < 16; ++iY) {
-		for (int iX = 0; iX < 16; ++iX) {
-			vram[(iY + y * 16) * canvasWidth + (iX + x * 16)] = color;
+	for (int iY = 0; iY < size.mY; ++iY) {
+		for (int iX = 0; iX < size.mX; ++iX) {
+			vram[(iY + pos.mY * size.mY) * windowWidth + (iX + pos.mX * size.mX)] = color;
 		}
 	}
 }
@@ -334,13 +277,13 @@ void State::drawCell(const Utils::Vec2& pos, const Utils::Rect& rect, const Imag
 	}
 
 	unsigned* vram = GameLib::Framework::instance().videoMemory();
-	int canvasWidth = GameLib::Framework::instance().width();
+	int windowWidth = GameLib::Framework::instance().width();
 
 	Image partImg = img.part(rect);
 
 	for (int iY = 0; iY < partImg.heigth(); ++iY) {
 		for (int iX = 0; iX < partImg.width(); ++iX) {
-			vram[(iY + pos.mY) * canvasWidth + (iX + pos.mX)] = partImg.data()[iY * partImg.width() + iX];
+			vram[(iY + pos.mY * rect.mHeight) * windowWidth + (iX + pos.mX * rect.mWidth)] = partImg.data()[iY * partImg.width() + iX];
 		}
 	}
 }

@@ -44,7 +44,7 @@ namespace Utils
 		};
 
 		bool parseMap(const char* stageData, int size);
-		void drawCell16(int x, int y, unsigned color)const;
+		void drawCell(const Vec2& pos, const Vec2& size, unsigned color)const;
 		void drawCell(const Vec2& pos, const Rect& rect, const Image& img)const;
 
 		int mWidth;
