@@ -152,6 +152,11 @@ bool Image::loadDDS32(const char* buffer, int size)
 	return true;
 }
 
+uint8 Image::getAlpha(unsigned* pixsel)const
+{
+	return (*pixsel & 0xff000000) >> 24;
+}
+
 unsigned getUnsigned(const char* p)
 {
 	const unsigned char* up;

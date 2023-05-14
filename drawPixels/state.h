@@ -20,6 +20,7 @@ namespace Utils
 		void draw() const;
 		bool hasCleared() const;
 		void loadTile();
+		void test()const;
 	private:
 		enum class ObjectType
 		{
@@ -46,6 +47,7 @@ namespace Utils
 		bool parseMap(const char* stageData, int size);
 		void drawCell(const Vec2& pos, const Vec2& size, unsigned color)const;
 		void drawCell(const Vec2& pos, const Rect& rect, const Image& img)const;
+		void drawCellAlpha(const Vec2& pos, const Rect& rect, const Image& img)const;
 
 		int mWidth;
 		int mHeight;

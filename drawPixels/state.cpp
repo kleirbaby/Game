@@ -1,4 +1,5 @@
 #include "state.h"
+#include "global.h"
 #include <algorithm>
 #include <iostream>
 #include <cassert>
@@ -125,6 +126,9 @@ void State::draw() const
 			}
 		}
 	}
+
+	//测试
+	test();
 }
 
 bool State::hasCleared() const
@@ -155,6 +159,16 @@ void State::loadTile()
 		GameLib::cout << "State::loadTile,bLoadSuc == false!" << GameLib::endl;
 		assert(bLoadSuc);
 	}
+}
+
+void State::test()const
+{
+	auto testImg = std::make_shared<Image>();
+
+	File imgFile("forgroundW.dds", IOMode::ReadOnly | IOMode::Binary);
+	testImg->loadFile(imgFile);
+	//drawCell(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
+	drawCellAlpha(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
 }
 
 bool State::parseMap(const char* stageData, int size)
@@ -284,6 +298,30 @@ void State::drawCell(const Utils::Vec2& pos, const Utils::Rect& rect, const Imag
 	for (int iY = 0; iY < partImg.heigth(); ++iY) {
 		for (int iX = 0; iX < partImg.width(); ++iX) {
 			vram[(iY + pos.mY * rect.mHeight) * windowWidth + (iX + pos.mX * rect.mWidth)] = partImg.data()[iY * partImg.width() + iX];
+		}
+	}
+}
+
+void State::drawCellAlpha(const Vec2& pos, const Rect& rect, const Image& img)const
+{
+	if (!img.isValid()) {
+		return;
+	}
+
+	unsigned* vram = GameLib::Framework::instance().videoMemory();
+	int windowWidth = GameLib::Framework::instance().width();
+
+	Image partImg = img.part(rect);
+
+	for (int iY = 0; iY < partImg.heigth(); ++iY) {
+		for (int iX = 0; iX < partImg.width(); ++iX) {
+			unsigned pixsel = partImg.data()[iY * partImg.width() + iX];
+			uint8 alpha = img.getAlpha(&pixsel);
+			//这里只是简单区分透明和不透明，所以使用大于等于128和小于128来判断
+			//这样透明通道就不会限制难么死
+			if (alpha >= 128) {
+				vram[(iY + pos.mY * rect.mHeight) * windowWidth + (iX + pos.mX * rect.mWidth)] = pixsel;
+			}
 		}
 	}
 }

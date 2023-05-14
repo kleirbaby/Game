@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClInclude Include="array2d.h" />
     <ClInclude Include="file.h" />
+    <ClInclude Include="global.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="noncopyable.h" />
     <ClInclude Include="rect.h" />

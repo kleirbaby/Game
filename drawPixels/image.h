@@ -1,4 +1,5 @@
 #pragma once
+#include "global.h"
 #include "file.h"
 #include "rect.h"
 
@@ -19,6 +20,9 @@ namespace Utils
 		int heigth()const;
 		const unsigned* data()const;
 		Image part(const Rect& rect)const;
+
+		//获取像素的透明度[0,255]
+		uint8 getAlpha(unsigned* pixsel)const;
 	private:
 		bool loadDDS32(const char* buffer, int size);
 	private:
