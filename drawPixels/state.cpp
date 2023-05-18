@@ -99,27 +99,31 @@ void State::draw() const
 			const Object& obj = mObjects(x, y);
 			GameLib::cout << "(" << x << "," << y << ") = ";
 			GameLib::cout << (int)mObjects(x, y).type << GameLib::endl;
+
+			//先绘制墙壁和地板
+			if (obj.type == ObjectType::OBJ_WALL) {
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
+			}
+			else {
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_FLOOR) * 32, 0, 32, 32), *mImage);
+			}
+
+			//然后绘制箱子点人物这些表面目标
 			switch (obj.type) {
-			case ObjectType::OBJ_SPACE:
-				drawCell(Vec2(x, y), Vec2(32,32), 0x000000);
-				break;
-			case ObjectType::OBJ_WALL:
-				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
-				break;
 			case ObjectType::OBJ_POINT:
-				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_BLOCK:
-				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_BLOCK_POINT:
-				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK_POINT) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_MAN:
-				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_MAN_POINT:
-				drawCell(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
 				break;
 			default:
 				break;
@@ -128,7 +132,7 @@ void State::draw() const
 	}
 
 	//测试
-	test();
+	//test();
 }
 
 bool State::hasCleared() const
@@ -149,7 +153,7 @@ void State::loadTile()
 		mImage = std::make_shared<Image>();
 	}
 
-	File imgFile("nimotsuKunImage.dds",IOMode::ReadOnly | IOMode::Binary);
+	File imgFile("nimotsuKunImage2.dds",IOMode::ReadOnly | IOMode::Binary);
 	bool bLoadSuc = false;
 	if (imgFile.isValid()) {
 		bLoadSuc = mImage->loadFile(imgFile);
@@ -168,7 +172,7 @@ void State::test()const
 	File imgFile("forgroundW.dds", IOMode::ReadOnly | IOMode::Binary);
 	testImg->loadFile(imgFile);
 	//drawCell(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
-	drawCellAlpha(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
+	drawCellAlphaTest(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
 }
 
 bool State::parseMap(const char* stageData, int size)
@@ -302,7 +306,7 @@ void State::drawCell(const Utils::Vec2& pos, const Utils::Rect& rect, const Imag
 	}
 }
 
-void State::drawCellAlpha(const Vec2& pos, const Rect& rect, const Image& img)const
+void State::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -322,6 +326,27 @@ void State::drawCellAlpha(const Vec2& pos, const Rect& rect, const Image& img)co
 			if (alpha >= 128) {
 				vram[(iY + pos.mY * rect.mHeight) * windowWidth + (iX + pos.mX * rect.mWidth)] = pixsel;
 			}
+		}
+	}
+}
+
+void State::drawCellAlphaBlend(const Vec2& pos, const Rect& rect, const Image& img)const
+{
+	if (!img.isValid()) {
+		return;
+	}
+
+	unsigned* vram = GameLib::Framework::instance().videoMemory();
+	int windowWidth = GameLib::Framework::instance().width();
+
+	Image partImg = img.part(rect);
+
+	for (int iY = 0; iY < partImg.heigth(); ++iY) {
+		for (int iX = 0; iX < partImg.width(); ++iX) {
+			unsigned pixsel = partImg.data()[iY * partImg.width() + iX];
+			uint8 alpha = img.getAlpha(&pixsel);
+			//透明混合
+			//todo
 		}
 	}
 }

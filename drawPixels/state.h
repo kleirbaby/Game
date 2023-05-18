@@ -14,7 +14,7 @@ namespace Utils
 	{
 	public:
 		//该枚举值顺序要跟读取的图元顺序一致。
-		enum class TileID { IMG_PLAYER, IMG_WALL, IMG_BLOCK, IMG_BLOCK_POINT, IMG_POINT };
+		enum class TileID { IMG_PLAYER, IMG_WALL, IMG_BLOCK, IMG_POINT, IMG_FLOOR};
 		State(const char* stageData, int size);
 		void update(char input);
 		void draw() const;
@@ -47,7 +47,8 @@ namespace Utils
 		bool parseMap(const char* stageData, int size);
 		void drawCell(const Vec2& pos, const Vec2& size, unsigned color)const;
 		void drawCell(const Vec2& pos, const Rect& rect, const Image& img)const;
-		void drawCellAlpha(const Vec2& pos, const Rect& rect, const Image& img)const;
+		void drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const;
+		void drawCellAlphaBlend(const Vec2& pos, const Rect& rect, const Image& img)const;
 
 		int mWidth;
 		int mHeight;
