@@ -3,6 +3,7 @@
 #include "array2d.h"
 #include <functional>
 #include <memory>
+#include <unordered_map>
 #include "vector2.h"
 #include "rect.h"
 
@@ -16,7 +17,7 @@ namespace Utils
 		//该枚举值顺序要跟读取的图元顺序一致。
 		enum class TileID { IMG_PLAYER, IMG_WALL, IMG_BLOCK, IMG_POINT, IMG_FLOOR};
 		State(const char* stageData, int size);
-		void update(char input);
+		void update();
 		void draw() const;
 		bool hasCleared() const;
 		void loadTile();
@@ -50,9 +51,14 @@ namespace Utils
 		void drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const;
 		void drawCellAlphaBlend(const Vec2& pos, const Rect& rect, const Image& img)const;
 
+		//采用检测方式:只在前一帧没有按下才响应
+		bool canMovePerOn(int input);
+
 		int mWidth;
 		int mHeight;
 		Array2D<Object> mObjects;
 		std::shared_ptr<Image> mImage;
+
+		std::unordered_map<int, bool> mKeyStatus;
 	};
 }

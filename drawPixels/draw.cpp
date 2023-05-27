@@ -41,10 +41,7 @@ void mainLoop()
 		return;
 	}
 
-	char input;
-	GameLib::cin >> input;
-
-	state->update(input);
+	state->update();
 
 	state->draw();//这里绘制不能放到cin前面，不然事件一直等待输入，导致不能及时走到下个循环，也就渲染不出来。
 

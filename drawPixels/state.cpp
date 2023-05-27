@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cassert>
+#include <cstdio>
 #include "GameLib/Framework.h"
 #include "image.h"
 #include "file.h"
@@ -17,22 +18,26 @@ State::State(const char* stageData, int size)
 	parseMap(stageData, size);
 }
 
-void State::update(char input)
+void State::update()
 {
 	int dx = 0, dy = 0;
-	switch (input) {
-	case 'w':
-		dy--;
-		break;
-	case 's':
-		dy++;
-		break;
-	case 'a':
-		dx--;
-		break;
-	case 'd':
-		dx++;
-		break;
+	//auto f = GameLib::Framework::instance();
+
+	if (canMovePerOn('a')) {
+		dx -= 1;
+	}
+	else if (canMovePerOn('d')) {
+		dx += 1;
+	}
+	else if (canMovePerOn('w')) {
+		dy -= 1;
+	}
+	else if (canMovePerOn('s')) {
+		dy += 1;
+	}
+	else {
+		//::_sleep(500);
+		return;
 	}
 
 	int x, y;
@@ -117,12 +122,14 @@ void State::draw() const
 				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_BLOCK_POINT:
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
 				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_MAN:
 				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
 				break;
 			case ObjectType::OBJ_MAN_POINT:
+				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
 				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
 				break;
 			default:
@@ -172,7 +179,7 @@ void State::test()const
 	File imgFile("forgroundW.dds", IOMode::ReadOnly | IOMode::Binary);
 	testImg->loadFile(imgFile);
 	//drawCell(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
-	drawCellAlphaTest(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
+	drawCellAlphaBlend(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
 }
 
 bool State::parseMap(const char* stageData, int size)
@@ -343,10 +350,40 @@ void State::drawCellAlphaBlend(const Vec2& pos, const Rect& rect, const Image& i
 
 	for (int iY = 0; iY < partImg.heigth(); ++iY) {
 		for (int iX = 0; iX < partImg.width(); ++iX) {
-			unsigned pixsel = partImg.data()[iY * partImg.width() + iX];
-			uint8 alpha = img.getAlpha(&pixsel);
+			unsigned srcPixsel = partImg.data()[iY * partImg.width() + iX];
+			uint8 alpha = img.getAlpha(&srcPixsel);
 			//Í¸Ã÷»ìºÏ
-			//todo
+			double srcA = static_cast<double>(alpha / 255.0);
+			double srcR = static_cast<double>((srcPixsel & 0x00ff0000) >> 16);
+			double srcG = static_cast<double>((srcPixsel & 0x0000ff00) >> 8);
+			double srcB = static_cast<double>(srcPixsel & 0x000000ff);
+
+			unsigned* dstPixsel = vram + (iY * windowWidth + iX);
+			double dstR = static_cast<double>((*dstPixsel & 0x00ff0000) >> 16);
+			double dstG = static_cast<double>((*dstPixsel & 0x0000ff00) >> 8);
+			double dstB = static_cast<double>(*dstPixsel & 0x000000ff);
+
+			double r = srcR * srcA + (1.f - srcA) * dstR;
+			double g = srcG * srcA + (1.f - srcA) * dstG;
+			double b = srcB * srcA + (1.f - srcA) * dstB;
+
+			*dstPixsel = static_cast<unsigned>(r) << 16;
+			*dstPixsel |= static_cast<unsigned>(g) << 8;
+			*dstPixsel |= static_cast<unsigned>(b);
 		}
 	}
+}
+
+bool State::canMovePerOn(int input)
+{
+	auto f = GameLib::Framework::instance();
+	auto s = f.isKeyOn(input);
+
+	if (s && (mKeyStatus.find(input) == mKeyStatus.end() || !mKeyStatus[input])) {
+		mKeyStatus[input] = s;
+		return true;
+	}
+
+	mKeyStatus[input] = s;
+	return false;
 }
