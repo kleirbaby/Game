@@ -12,6 +12,10 @@
 using namespace std;
 using namespace Utils;
 
+constexpr int PER_FRAME_MOVE = 1;
+constexpr int LIMIT_FRAMES = 32 / PER_FRAME_MOVE;
+constexpr int PER_CELL = 32;
+
 State::State(const char* stageData, int size)
 	:mWidth(0), mHeight(0)
 {
@@ -21,122 +25,55 @@ State::State(const char* stageData, int size)
 void State::update()
 {
 	int dx = 0, dy = 0;
-	//auto f = GameLib::Framework::instance();
 
 	if (canMovePerOn('a')) {
 		dx -= 1;
+		mDirX = dx;
+		mDirY = 0;
+		mPerMoveFrames = 0;
+		GameLib::cout << "dx: " << -1 << GameLib::endl;
 	}
 	else if (canMovePerOn('d')) {
 		dx += 1;
+		mDirX = dx;
+		mDirY = 0;
+		mPerMoveFrames = 0;
+		GameLib::cout << "dx: " << 1 << GameLib::endl;
 	}
 	else if (canMovePerOn('w')) {
 		dy -= 1;
+		mDirX = 0;
+		mDirY = dy;
+		mPerMoveFrames = 0;
+		GameLib::cout << "dy: " << -1 << GameLib::endl;
 	}
 	else if (canMovePerOn('s')) {
 		dy += 1;
+		mDirX = 0;
+		mDirY = dy;
+		mPerMoveFrames = 0;
+		GameLib::cout << "dx: " << 1 << GameLib::endl;
 	}
-	else {
-		//::_sleep(500);
+	
+	mPerMoveFrames++;
+
+	if (mPerMoveFrames > LIMIT_FRAMES) {
 		return;
 	}
 
-	int x, y;
-	for (y = 0; y < mHeight; ++y) {
-		for (x = 0; x < mWidth; ++x) {
-			if (mObjects(x, y).type == ObjectType::OBJ_MAN
-				|| mObjects(x, y).type == ObjectType::OBJ_MAN_POINT) {
-				goto FIND_MAN;
-				break;
-			}
-		}
-	}
-
-FIND_MAN:
-	if (x > mWidth || y > mHeight) {
-		assert(0);
-		return;
-	}
-
-	Object& obj = mObjects(x + dx, y + dy);
-	switch (obj.type) {
-	case ObjectType::OBJ_SPACE:
-		obj.type = ObjectType::OBJ_MAN;
-		mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		break;
-	case ObjectType::OBJ_WALL:
-		break;
-	case ObjectType::OBJ_POINT:
-		obj.type = ObjectType::OBJ_MAN_POINT;
-		mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		break;
-	case ObjectType::OBJ_BLOCK: {
-		int blockX = x + dx;
-		int blockY = y + dy;
-		if (mObjects(blockX + dx, blockY + dy).type == ObjectType::OBJ_SPACE) {
-			mObjects(blockX + dx, blockY + dy).type = ObjectType::OBJ_BLOCK;
-			obj.type = ObjectType::OBJ_MAN;
-			mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		}
-		else if (mObjects(blockX + dx, blockY + dy).type == ObjectType::OBJ_POINT) {
-			mObjects(blockX + dx, blockY + dy).type = ObjectType::OBJ_BLOCK_POINT;
-			obj.type = ObjectType::OBJ_MAN;
-			mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		}
-	}
-		break;
-	case ObjectType::OBJ_BLOCK_POINT:
-		//todo
-		break;
-	default:
-		break;
-	}
+	updateMap(dx, dy);
+	updatePlayer();
 }
 
-void State::draw() const
+void State::draw()
 {
 	if (!mImage) {
 		assert(mImage);
 		return;
 	}
 
-	for (int y = 0; y < mHeight; ++y) {
-		for (int x = 0; x < mWidth; ++x) {
-			const Object& obj = mObjects(x, y);
-			GameLib::cout << "(" << x << "," << y << ") = ";
-			GameLib::cout << (int)mObjects(x, y).type << GameLib::endl;
-
-			//先绘制墙壁和地板
-			if (obj.type == ObjectType::OBJ_WALL) {
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
-			}
-			else {
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_FLOOR) * 32, 0, 32, 32), *mImage);
-			}
-
-			//然后绘制箱子点人物这些表面目标
-			switch (obj.type) {
-			case ObjectType::OBJ_POINT:
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
-				break;
-			case ObjectType::OBJ_BLOCK:
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
-				break;
-			case ObjectType::OBJ_BLOCK_POINT:
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
-				break;
-			case ObjectType::OBJ_MAN:
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
-				break;
-			case ObjectType::OBJ_MAN_POINT:
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
-				drawCellAlphaTest(Vec2(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
-				break;
-			default:
-				break;
-			}
-		}
-	}
+	drawMap();
+	drawPlayer();
 
 	//测试
 	//test();
@@ -178,8 +115,8 @@ void State::test()const
 
 	File imgFile("forgroundW.dds", IOMode::ReadOnly | IOMode::Binary);
 	testImg->loadFile(imgFile);
-	//drawCell(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
-	drawCellAlphaBlend(Vec2(0, 0), Rect(0, 0, 128, 128), *testImg);
+	//drawCell(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
+	drawCellAlphaBlend(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
 }
 
 bool State::parseMap(const char* stageData, int size)
@@ -280,10 +217,20 @@ bool State::parseMap(const char* stageData, int size)
 		mObjects(x, y) = std::move(obj);
 	}
 
+	initPlayer();
+
 	return true;
 }
 
-void State::drawCell(const Vec2& pos, const Vec2& size, unsigned color)const
+void State::drawPixel(const Coord& pos, unsigned color)const
+{
+	unsigned* vram = GameLib::Framework::instance().videoMemory();
+	int windowWidth = GameLib::Framework::instance().width();
+
+	vram[pos.mY * windowWidth +pos.mX] = color;
+}
+
+void State::drawCell(const Coord& pos, const Vec2& size, unsigned color)const
 {
 	unsigned* vram = GameLib::Framework::instance().videoMemory();
 	int windowWidth = GameLib::Framework::instance().width();
@@ -295,7 +242,7 @@ void State::drawCell(const Vec2& pos, const Vec2& size, unsigned color)const
 	}
 }
 
-void State::drawCell(const Utils::Vec2& pos, const Utils::Rect& rect, const Image& img)const
+void State::drawCell(const Coord& pos, const Utils::Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -313,7 +260,7 @@ void State::drawCell(const Utils::Vec2& pos, const Utils::Rect& rect, const Imag
 	}
 }
 
-void State::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const
+void State::drawCellAlphaTest(const Coord& pos, const Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -337,7 +284,31 @@ void State::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& im
 	}
 }
 
-void State::drawCellAlphaBlend(const Vec2& pos, const Rect& rect, const Image& img)const
+void State::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const
+{
+	if (!img.isValid()) {
+		return;
+	}
+
+	unsigned* vram = GameLib::Framework::instance().videoMemory();
+	int windowWidth = GameLib::Framework::instance().width();
+
+	Image partImg = img.part(rect);
+
+	for (int iY = 0; iY < partImg.heigth(); ++iY) {
+		for (int iX = 0; iX < partImg.width(); ++iX) {
+			unsigned pixsel = partImg.data()[iY * partImg.width() + iX];
+			uint8 alpha = img.getAlpha(&pixsel);
+			//这里只是简单区分透明和不透明，所以使用大于等于128和小于128来判断
+			//这样透明通道就不会限制难么死
+			if (alpha >= 128) {
+				vram[(iY + pos.mY) * windowWidth + (iX + pos.mX)] = pixsel;
+			}
+		}
+	}
+}
+
+void State::drawCellAlphaBlend(const Coord& pos, const Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -386,4 +357,146 @@ bool State::canMovePerOn(int input)
 
 	mKeyStatus[input] = s;
 	return false;
+}
+
+const State::Coord State::findPlayer()
+{
+	int x, y;
+	for (y = 0; y < mHeight; ++y) {
+		for (x = 0; x < mWidth; ++x) {
+			if (mObjects(x, y).type == ObjectType::OBJ_MAN
+				|| mObjects(x, y).type == ObjectType::OBJ_MAN_POINT) {
+				break;
+			}
+		}
+
+		if (x < mWidth) {
+			break;
+		}
+	}
+
+	if (x < mWidth && y < mHeight) {
+		return Coord(x, y);
+	}
+
+	return Coord(-1,-1);
+}
+
+void State::initPlayer()
+{
+	const auto& coord = findPlayer();
+	mPlayerPos = coord.toVec();
+}
+
+void State::updateMap(int dx, int dy)
+{
+	const auto& pos = findPlayer();
+	if (pos.mX < 0 || pos.mY < 0) {
+		return;
+	}
+
+	int x = pos.mX;
+	int y = pos.mY;
+
+	mUpdateMap = true;
+
+	Object& obj = mObjects(x + dx, y + dy);
+	switch (obj.type) {
+	case ObjectType::OBJ_SPACE:
+		obj.type = ObjectType::OBJ_MAN;
+		mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		break;
+	case ObjectType::OBJ_WALL:
+		break;
+	case ObjectType::OBJ_POINT:
+		obj.type = ObjectType::OBJ_MAN_POINT;
+		mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		break;
+	case ObjectType::OBJ_BLOCK: {
+		int blockX = x + dx;
+		int blockY = y + dy;
+		if (mObjects(blockX + dx, blockY + dy).type == ObjectType::OBJ_SPACE) {
+			mObjects(blockX + dx, blockY + dy).type = ObjectType::OBJ_BLOCK;
+			obj.type = ObjectType::OBJ_MAN;
+			mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		}
+		else if (mObjects(blockX + dx, blockY + dy).type == ObjectType::OBJ_POINT) {
+			mObjects(blockX + dx, blockY + dy).type = ObjectType::OBJ_BLOCK_POINT;
+			obj.type = ObjectType::OBJ_MAN;
+			mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		}
+	}
+		break;
+	case ObjectType::OBJ_BLOCK_POINT:
+		//todo
+		break;
+	default:
+		break;
+	}
+}
+
+void State::updatePlayer()
+{
+	if (mPerMoveFrames < LIMIT_FRAMES) {
+		int stepX = mDirX * PER_FRAME_MOVE;
+		int stepY = mDirY * PER_FRAME_MOVE;
+		mPlayerPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
+
+		GameLib::cout << "per move frames: " << (int)mPerMoveFrames << GameLib::endl;
+		GameLib::cout << "player pos," << "x: " << mPlayerPos.mX << ",y: " << mPlayerPos.mY << GameLib::endl;
+		GameLib::cout << "stepX: " << stepX << ",stepY: " << stepY << GameLib::endl;
+	}
+}
+
+void State::drawMap()
+{
+	mUpdateMap = false;
+
+	for (int y = 0; y < mHeight; ++y) {
+		for (int x = 0; x < mWidth; ++x) {
+			const Object& obj = mObjects(x, y);
+#if LOG
+			GameLib::cout << "(" << x << "," << y << ") = ";
+			GameLib::cout << (int)mObjects(x, y).type << GameLib::endl;
+#endif
+
+			//先绘制墙壁和地板
+			if (obj.type == ObjectType::OBJ_WALL) {
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
+			}
+			else {
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_FLOOR) * 32, 0, 32, 32), *mImage);
+			}
+
+			//然后绘制箱子点人物这些表面目标
+			switch (obj.type) {
+			case ObjectType::OBJ_POINT:
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
+				break;
+			case ObjectType::OBJ_BLOCK:
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
+				break;
+			case ObjectType::OBJ_BLOCK_POINT:
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
+				break;
+			case ObjectType::OBJ_MAN:
+				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+				break;
+			case ObjectType::OBJ_MAN_POINT:
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
+				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+void State::drawPlayer()
+{
+	if (!mUpdateMap) {
+		drawCellAlphaTest(mPlayerPos, Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+	}
 }
