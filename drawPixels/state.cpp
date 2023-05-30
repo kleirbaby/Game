@@ -13,8 +13,8 @@ using namespace std;
 using namespace Utils;
 
 constexpr int PER_FRAME_MOVE = 1;
-constexpr int LIMIT_FRAMES = 32 / PER_FRAME_MOVE;
 constexpr int PER_CELL = 32;
+constexpr int LIMIT_FRAMES = PER_CELL / PER_FRAME_MOVE;
 
 State::State(const char* stageData, int size)
 	:mWidth(0), mHeight(0)
@@ -61,8 +61,8 @@ void State::update()
 		return;
 	}
 
-	updateMap(dx, dy);
 	updatePlayer();
+	updateMap();
 }
 
 void State::draw()
@@ -359,71 +359,73 @@ bool State::canMovePerOn(int input)
 	return false;
 }
 
-const State::Coord State::findPlayer()
+static const State::Coord findPlayer(const Array2D<State::Object>& objs)
 {
 	int x, y;
-	for (y = 0; y < mHeight; ++y) {
-		for (x = 0; x < mWidth; ++x) {
-			if (mObjects(x, y).type == ObjectType::OBJ_MAN
-				|| mObjects(x, y).type == ObjectType::OBJ_MAN_POINT) {
+
+	int width = 0,height = 0;
+	objs.size(width, height);
+
+	for (y = 0; y < height; ++y) {
+		for (x = 0; x < width; ++x) {
+			if (objs(x, y).type == State::ObjectType::OBJ_MAN
+				|| objs(x, y).type == State::ObjectType::OBJ_MAN_POINT) {
 				break;
 			}
 		}
 
-		if (x < mWidth) {
+		if (x < width) {
 			break;
 		}
 	}
 
-	if (x < mWidth && y < mHeight) {
-		return Coord(x, y);
+	if (x < width && y < height) {
+		return State::Coord(x, y);
 	}
 
-	return Coord(-1,-1);
+	return State::Coord(-1,-1);
 }
 
 void State::initPlayer()
 {
-	const auto& coord = findPlayer();
+	const auto& coord = findPlayer(mObjects);
 	mPlayerPos = coord.toVec();
 }
 
-void State::updateMap(int dx, int dy)
+void State::updateMap()
 {
-	const auto& pos = findPlayer();
-	if (pos.mX < 0 || pos.mY < 0) {
+	if (mPerMoveFrames != LIMIT_FRAMES) {
 		return;
 	}
 
-	int x = pos.mX;
-	int y = pos.mY;
+	int x = mPlayerPos.mX / PER_CELL;
+	int y = mPlayerPos.mY / PER_CELL;
 
-	mUpdateMap = true;
+	int prevX = x - mDirX;
+	int prevY = y - mDirY;
 
-	Object& obj = mObjects(x + dx, y + dy);
+	Object& obj = mObjects(x, y);
 	switch (obj.type) {
 	case ObjectType::OBJ_SPACE:
 		obj.type = ObjectType::OBJ_MAN;
-		mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
 		break;
 	case ObjectType::OBJ_WALL:
 		break;
 	case ObjectType::OBJ_POINT:
 		obj.type = ObjectType::OBJ_MAN_POINT;
-		mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
 		break;
 	case ObjectType::OBJ_BLOCK: {
-		int blockX = x + dx;
-		int blockY = y + dy;
-		if (mObjects(blockX + dx, blockY + dy).type == ObjectType::OBJ_SPACE) {
-			mObjects(blockX + dx, blockY + dy).type = ObjectType::OBJ_BLOCK;
+		if (mObjects(x + mDirX, x + mDirY).type == ObjectType::OBJ_SPACE) {
+			mObjects(y + mDirX, y + mDirY).type = ObjectType::OBJ_BLOCK;
 			obj.type = ObjectType::OBJ_MAN;
-			mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+			mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
 		}
-		else if (mObjects(blockX + dx, blockY + dy).type == ObjectType::OBJ_POINT) {
-			mObjects(blockX + dx, blockY + dy).type = ObjectType::OBJ_BLOCK_POINT;
+		else if (mObjects(x + mDirX, y + mDirY).type == ObjectType::OBJ_POINT) {
+			mObjects(x + mDirX, y + mDirY).type = ObjectType::OBJ_BLOCK_POINT;
 			obj.type = ObjectType::OBJ_MAN;
-			mObjects(x, y) = mObjects(x, y).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+			mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
 		}
 	}
 		break;
@@ -435,23 +437,54 @@ void State::updateMap(int dx, int dy)
 	}
 }
 
+
 void State::updatePlayer()
 {
-	if (mPerMoveFrames < LIMIT_FRAMES) {
-		int stepX = mDirX * PER_FRAME_MOVE;
-		int stepY = mDirY * PER_FRAME_MOVE;
-		mPlayerPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
+	int stepX = mDirX * PER_FRAME_MOVE;
+	int stepY = mDirY * PER_FRAME_MOVE;
 
-		GameLib::cout << "per move frames: " << (int)mPerMoveFrames << GameLib::endl;
-		GameLib::cout << "player pos," << "x: " << mPlayerPos.mX << ",y: " << mPlayerPos.mY << GameLib::endl;
-		GameLib::cout << "stepX: " << stepX << ",stepY: " << stepY << GameLib::endl;
+#if LOG
+	GameLib::cout << "per move frames: " << (int)mPerMoveFrames << GameLib::endl;
+	GameLib::cout << "player pos," << "x: " << mPlayerPos.mX << ",y: " << mPlayerPos.mY << GameLib::endl;
+	GameLib::cout << "stepX: " << stepX << ",stepY: " << stepY << GameLib::endl;
+#endif
+
+	//预防穿墙(这里的碰撞检测需要考虑player的上下左右
+	//比如与右侧墙壁相撞应该用右侧位置，与左边墙壁相撞应该用左边位置)
+	auto nextPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
+	int coordX = 0, coordY = 0;
+	
+	if (mDirX > 0) {
+		coordX = (nextPos.mX + PER_CELL) / PER_CELL;
+		coordY = nextPos.mY / PER_CELL;
 	}
+
+	if (mDirX < 0) {
+		coordX = nextPos.mX / PER_CELL;
+		coordY = nextPos.mY / PER_CELL;
+	}
+
+	if (mDirY > 0) {
+		coordX = nextPos.mX / PER_CELL;
+		coordY = (nextPos.mY + PER_CELL) / PER_CELL;
+	}
+
+	if (mDirY < 0) {
+		coordX = nextPos.mX / PER_CELL;
+		coordY = nextPos.mY / PER_CELL;
+	}
+
+	if (mObjects(coordX, coordY).type == ObjectType::OBJ_WALL) {
+		return;
+	}
+
+	//预防穿过箱子
+
+	mPlayerPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
 }
 
 void State::drawMap()
 {
-	mUpdateMap = false;
-
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
 			const Object& obj = mObjects(x, y);
@@ -462,30 +495,30 @@ void State::drawMap()
 
 			//先绘制墙壁和地板
 			if (obj.type == ObjectType::OBJ_WALL) {
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 			}
 			else {
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_FLOOR) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_FLOOR) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 			}
 
 			//然后绘制箱子点人物这些表面目标
 			switch (obj.type) {
 			case ObjectType::OBJ_POINT:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 				break;
 			case ObjectType::OBJ_BLOCK:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 				break;
 			case ObjectType::OBJ_BLOCK_POINT:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 				break;
 			case ObjectType::OBJ_MAN:
-				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 				break;
 			case ObjectType::OBJ_MAN_POINT:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * 32, 0, 32, 32), *mImage);
-				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
+				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 				break;
 			default:
 				break;
@@ -496,7 +529,5 @@ void State::drawMap()
 
 void State::drawPlayer()
 {
-	if (!mUpdateMap) {
-		drawCellAlphaTest(mPlayerPos, Rect(static_cast<int>(TileID::IMG_PLAYER) * 32, 0, 32, 32), *mImage);
-	}
+	drawCellAlphaTest(mPlayerPos, Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 }

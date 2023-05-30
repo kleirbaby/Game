@@ -12,6 +12,8 @@ namespace Utils
 		Vec2T& operator=(const Vec2T& v);
 		Vec2T& operator+(const Vec2T& v);
 		Vec2T<T>& operator+=(const Vec2T& v);
+		Vec2T<T>& operator-(const Vec2T& v);
+		Vec2T<T>& operator-=(const Vec2T& v);
 
 		T mX;
 		T mY;
@@ -61,6 +63,20 @@ namespace Utils
 	Vec2T<T>& Vec2T<T>::operator+=(const Vec2T<T>& v)
 	{
 		return operator+(v);
+	}
+
+	template<typename T>
+	Vec2T<T>& Vec2T<T>::operator-(const Vec2T<T>& v)
+	{
+		mX -= v.mX;
+		mY -= v.mY;
+		return *this;
+	}
+
+	template<typename T>
+	Vec2T<T>& Vec2T<T>::operator-=(const Vec2T<T>& v)
+	{
+		return operator-(v);
 	}
 
 	typedef Vec2T<int> Vec2;

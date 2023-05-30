@@ -19,13 +19,6 @@ namespace Utils
 		//该枚举值顺序要跟读取的图元顺序一致。
 		enum class TileID { IMG_PLAYER, IMG_WALL, IMG_BLOCK, IMG_POINT, IMG_FLOOR};
 
-		State(const char* stageData, int size);
-		void update();
-		void draw();
-		bool hasCleared() const;
-		void loadTile();
-		void test()const;
-	private:
 		enum class ObjectType
 		{
 			OBJ_SPACE,
@@ -39,6 +32,19 @@ namespace Utils
 			OBJ_UNKNOWN,
 		};
 
+		struct Coord
+		{
+			Coord() {}
+			Coord(int x, int y) :mX(x), mY(y) {}
+			const Vec2 toVec()const
+			{
+				return Vec2(mX * 32, mY * 32);
+			}
+
+			int mX{ 0 };
+			int mY{ 0 };
+		};
+
 		struct Object
 		{
 			Object() {}
@@ -48,19 +54,13 @@ namespace Utils
 			bool flag = false;
 		};
 
-		struct Coord
-		{
-			Coord(){}
-			Coord(int x,int y):mX(x),mY(y){}
-			const Vec2 toVec()const
-			{
-				return Vec2(mX * 32,mY * 32);
-			}
-
-			int mX{ 0 };
-			int mY{ 0 };
-		};
-
+		State(const char* stageData, int size);
+		void update();
+		void draw();
+		bool hasCleared() const;
+		void loadTile();
+		void test()const;
+	private:
 		bool parseMap(const char* stageData, int size);
 		void drawPixel(const Coord& pos,unsigned color)const;
 		void drawCell(const Coord& pos, const Vec2& size, unsigned color)const;
@@ -72,12 +72,9 @@ namespace Utils
 		//采用检测方式:只在前一帧没有按下才响应
 		bool canMovePerOn(int input);
 
-		//查找玩家
-		const Coord findPlayer();
-
 		void initPlayer();
 
-		void updateMap(int dx,int dy);
+		void updateMap();
 		void updatePlayer();
 		void drawMap();
 		void drawPlayer();
@@ -89,7 +86,7 @@ namespace Utils
 
 		std::unordered_map<int, bool> mKeyStatus;
 		uint32 mPerMoveFrames = 0;
-		bool mUpdateMap{ false };
+		bool mUpdatePlayerCoord{ false };
 		Vec2 mPlayerPos{ -1, -1 };
 		int mDirX = 0;
 		int mDirY = 0;

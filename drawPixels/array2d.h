@@ -84,6 +84,12 @@ public:
 		mArray = new T[mSize0 * mSize1];
 	}
 
+	void size(int& size0,int& size1)const
+	{
+		size0 = mSize0;
+		size1 = mSize1;
+	}
+
 	T& operator()(int index0, int index1) 
 	{
 		return operator()(index1 * mSize0 + index0);
