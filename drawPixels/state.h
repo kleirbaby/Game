@@ -71,6 +71,8 @@ namespace Utils
 
 		//采用检测方式:只在前一帧没有按下才响应
 		bool canMovePerOn(int input);
+		//碰撞
+		bool isCollisionWithPlayer(const Vec2& playerPos,int dirX,int dirY, ObjectType type);
 
 		void initPlayer();
 

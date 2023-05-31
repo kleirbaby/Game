@@ -359,6 +359,37 @@ bool State::canMovePerOn(int input)
 	return false;
 }
 
+bool State::isCollisionWithPlayer(const Vec2& playerPos, int dirX, int dirY, ObjectType type)
+{
+	int coordX = 0, coordY = 0;
+
+	if (dirX > 0) {
+		coordX = (playerPos.mX + PER_CELL) / PER_CELL;
+		coordY = playerPos.mY / PER_CELL;
+	}
+
+	if (dirX < 0) {
+		coordX = playerPos.mX / PER_CELL;
+		coordY = playerPos.mY / PER_CELL;
+	}
+
+	if (dirY > 0) {
+		coordX = playerPos.mX / PER_CELL;
+		coordY = (playerPos.mY + PER_CELL) / PER_CELL;
+	}
+
+	if (dirY < 0) {
+		coordX = playerPos.mX / PER_CELL;
+		coordY = playerPos.mY / PER_CELL;
+	}
+
+	if (mObjects(coordX, coordY).type == type) {
+		return true;
+	}
+
+	return false;
+}
+
 static const State::Coord findPlayer(const Array2D<State::Object>& objs)
 {
 	int x, y;
@@ -452,33 +483,14 @@ void State::updatePlayer()
 	//预防穿墙(这里的碰撞检测需要考虑player的上下左右
 	//比如与右侧墙壁相撞应该用右侧位置，与左边墙壁相撞应该用左边位置)
 	auto nextPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
-	int coordX = 0, coordY = 0;
-	
-	if (mDirX > 0) {
-		coordX = (nextPos.mX + PER_CELL) / PER_CELL;
-		coordY = nextPos.mY / PER_CELL;
-	}
-
-	if (mDirX < 0) {
-		coordX = nextPos.mX / PER_CELL;
-		coordY = nextPos.mY / PER_CELL;
-	}
-
-	if (mDirY > 0) {
-		coordX = nextPos.mX / PER_CELL;
-		coordY = (nextPos.mY + PER_CELL) / PER_CELL;
-	}
-
-	if (mDirY < 0) {
-		coordX = nextPos.mX / PER_CELL;
-		coordY = nextPos.mY / PER_CELL;
-	}
-
-	if (mObjects(coordX, coordY).type == ObjectType::OBJ_WALL) {
+	if (isCollisionWithPlayer(nextPos, mDirX, mDirY, ObjectType::OBJ_WALL)) {
 		return;
 	}
 
 	//预防穿过箱子
+	if (isCollisionWithPlayer(nextPos, mDirX, mDirY, ObjectType::OBJ_BLOCK)) {
+		int i = 0;
+	}
 
 	mPlayerPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
 }
