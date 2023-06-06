@@ -36,10 +36,6 @@ namespace Utils
 		{
 			Coord() {}
 			Coord(int x, int y) :mX(x), mY(y) {}
-			const Vec2 toVec()const
-			{
-				return Vec2(mX * 32, mY * 32);
-			}
 
 			int mX{ 0 };
 			int mY{ 0 };
@@ -48,10 +44,33 @@ namespace Utils
 		struct Object
 		{
 			Object() {}
-			Object(ObjectType t) :type(t) {}
+			Object(ObjectType t):mType(t) {}
+			Object(ObjectType t,const Coord& c):mType(t), mCoord(c){}
 
-			ObjectType type = ObjectType::OBJ_UNKNOWN;
-			bool flag = false;
+			void move(const Coord& dc)
+			{
+				mCoord.mX += dc.mX;
+				mCoord.mY += dc.mY;
+			}
+
+			void move(ObjectType t, const Coord& dc)
+			{
+				mType = t;
+				move(dc);
+			}
+
+			void move(int dx,int dy)
+			{
+				move(Coord(dx,dy));
+			}
+
+			void move(ObjectType t, int dx, int dy)
+			{
+				move(t, Coord(dx, dy));
+			}
+
+			ObjectType mType = ObjectType::OBJ_UNKNOWN;
+			Coord mCoord;
 		};
 
 		State(const char* stageData, int size);
@@ -71,26 +90,16 @@ namespace Utils
 
 		//采用检测方式:只在前一帧没有按下才响应
 		bool canMovePerOn(int input);
-		//碰撞
-		bool isCollisionWithPlayer(const Vec2& playerPos,int dirX,int dirY, ObjectType type);
-
-		void initPlayer();
-
-		void updateMap();
-		void updatePlayer();
-		void drawMap();
-		void drawPlayer();
+		void drawBackground();
+		void drawForeground();
 
 		int mWidth;
 		int mHeight;
+
 		Array2D<Object> mObjects;
 		std::shared_ptr<Image> mImage;
 
 		std::unordered_map<int, bool> mKeyStatus;
 		uint32 mPerMoveFrames = 0;
-		bool mUpdatePlayerCoord{ false };
-		Vec2 mPlayerPos{ -1, -1 };
-		int mDirX = 0;
-		int mDirY = 0;
 	};
 }

@@ -28,41 +28,76 @@ void State::update()
 
 	if (canMovePerOn('a')) {
 		dx -= 1;
-		mDirX = dx;
-		mDirY = 0;
 		mPerMoveFrames = 0;
-		GameLib::cout << "dx: " << -1 << GameLib::endl;
 	}
 	else if (canMovePerOn('d')) {
 		dx += 1;
-		mDirX = dx;
-		mDirY = 0;
 		mPerMoveFrames = 0;
-		GameLib::cout << "dx: " << 1 << GameLib::endl;
 	}
 	else if (canMovePerOn('w')) {
 		dy -= 1;
-		mDirX = 0;
-		mDirY = dy;
 		mPerMoveFrames = 0;
-		GameLib::cout << "dy: " << -1 << GameLib::endl;
 	}
 	else if (canMovePerOn('s')) {
 		dy += 1;
-		mDirX = 0;
-		mDirY = dy;
 		mPerMoveFrames = 0;
-		GameLib::cout << "dx: " << 1 << GameLib::endl;
 	}
 	
 	mPerMoveFrames++;
 
-	if (mPerMoveFrames > LIMIT_FRAMES) {
+	if (mPerMoveFrames != LIMIT_FRAMES) {
+		return;
+	}
+	
+	Coord coord;
+	if (!findPlayer(mObjects, coord)) {
+		GameLib::cout << "State::update(),find player failure! coord: (" << coord.mX << "," << coord.mY << ")." << GameLib::endl;
 		return;
 	}
 
-	updatePlayer();
-	updateMap();
+	int x = coord.mX + dx;
+	int y = coord.mY + dy;
+
+	if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) {
+		GameLib::cout << "State::update(),over mObjects,x: " << x << ",y: " << y << GameLib::endl;
+		return;
+	}
+
+	Object& obj = mObjects(x, y);
+	switch (obj.mType) {
+	case ObjectType::OBJ_SPACE:
+		obj.move(ObjectType::OBJ_MAN, dx, dy);
+		ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+		break;
+	case ObjectType::OBJ_WALL:
+		break;
+	case ObjectType::OBJ_POINT:
+		obj.move(ObjectType::OBJ_MAN_POINT, dx, dy);
+		ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+		mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+		break;
+	case ObjectType::OBJ_BLOCK: 
+	{
+		if (mObjects(x + dx, y + dy).mType == ObjectType::OBJ_SPACE) {
+			mObjects(x + dx, y + dy).move(ObjectType::OBJ_BLOCK,dx,dy);
+			obj.move(ObjectType::OBJ_MAN, dx, dy);
+			ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+			mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+		}
+		else if (mObjects(x + dx, y + dy).mType == ObjectType::OBJ_POINT) {
+			mObjects(x + dx, y + dy).mType = ObjectType::OBJ_BLOCK_POINT;
+			obj.move(ObjectType::OBJ_MAN, dx, dy);
+			ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
+			mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+		}
+		break;
+	}
+	case ObjectType::OBJ_BLOCK_POINT:
+		break;
+	default:
+		break;
+	}
 }
 
 void State::draw()
@@ -72,8 +107,8 @@ void State::draw()
 		return;
 	}
 
-	drawMap();
-	drawPlayer();
+	drawBackground();
+	drawForeground();
 
 	//测试
 	//test();
@@ -83,7 +118,7 @@ bool State::hasCleared() const
 {
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
-			if (mObjects(x, y).type == ObjectType::OBJ_BLOCK) {
+			if (mObjects(x, y).mType == ObjectType::OBJ_BLOCK) {
 				return false;
 			}
 		}
@@ -216,8 +251,6 @@ bool State::parseMap(const char* stageData, int size)
 
 		mObjects(x, y) = std::move(obj);
 	}
-
-	initPlayer();
 
 	return true;
 }
@@ -359,38 +392,7 @@ bool State::canMovePerOn(int input)
 	return false;
 }
 
-bool State::isCollisionWithPlayer(const Vec2& playerPos, int dirX, int dirY, ObjectType type)
-{
-	int coordX = 0, coordY = 0;
-
-	if (dirX > 0) {
-		coordX = (playerPos.mX + PER_CELL) / PER_CELL;
-		coordY = playerPos.mY / PER_CELL;
-	}
-
-	if (dirX < 0) {
-		coordX = playerPos.mX / PER_CELL;
-		coordY = playerPos.mY / PER_CELL;
-	}
-
-	if (dirY > 0) {
-		coordX = playerPos.mX / PER_CELL;
-		coordY = (playerPos.mY + PER_CELL) / PER_CELL;
-	}
-
-	if (dirY < 0) {
-		coordX = playerPos.mX / PER_CELL;
-		coordY = playerPos.mY / PER_CELL;
-	}
-
-	if (mObjects(coordX, coordY).type == type) {
-		return true;
-	}
-
-	return false;
-}
-
-static const State::Coord findPlayer(const Array2D<State::Object>& objs)
+static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
 {
 	int x, y;
 
@@ -411,91 +413,14 @@ static const State::Coord findPlayer(const Array2D<State::Object>& objs)
 	}
 
 	if (x < width && y < height) {
-		return State::Coord(x, y);
+		coord = State::Coord(x, y);
+		return true;
 	}
 
-	return State::Coord(-1,-1);
+	return false;
 }
 
-void State::initPlayer()
-{
-	const auto& coord = findPlayer(mObjects);
-	mPlayerPos = coord.toVec();
-}
-
-void State::updateMap()
-{
-	if (mPerMoveFrames != LIMIT_FRAMES) {
-		return;
-	}
-
-	int x = mPlayerPos.mX / PER_CELL;
-	int y = mPlayerPos.mY / PER_CELL;
-
-	int prevX = x - mDirX;
-	int prevY = y - mDirY;
-
-	Object& obj = mObjects(x, y);
-	switch (obj.type) {
-	case ObjectType::OBJ_SPACE:
-		obj.type = ObjectType::OBJ_MAN;
-		mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		break;
-	case ObjectType::OBJ_WALL:
-		break;
-	case ObjectType::OBJ_POINT:
-		obj.type = ObjectType::OBJ_MAN_POINT;
-		mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		break;
-	case ObjectType::OBJ_BLOCK: {
-		if (mObjects(x + mDirX, x + mDirY).type == ObjectType::OBJ_SPACE) {
-			mObjects(y + mDirX, y + mDirY).type = ObjectType::OBJ_BLOCK;
-			obj.type = ObjectType::OBJ_MAN;
-			mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		}
-		else if (mObjects(x + mDirX, y + mDirY).type == ObjectType::OBJ_POINT) {
-			mObjects(x + mDirX, y + mDirY).type = ObjectType::OBJ_BLOCK_POINT;
-			obj.type = ObjectType::OBJ_MAN;
-			mObjects(prevX, prevY) = mObjects(prevX, prevY).type == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		}
-	}
-		break;
-	case ObjectType::OBJ_BLOCK_POINT:
-		//todo
-		break;
-	default:
-		break;
-	}
-}
-
-
-void State::updatePlayer()
-{
-	int stepX = mDirX * PER_FRAME_MOVE;
-	int stepY = mDirY * PER_FRAME_MOVE;
-
-#if LOG
-	GameLib::cout << "per move frames: " << (int)mPerMoveFrames << GameLib::endl;
-	GameLib::cout << "player pos," << "x: " << mPlayerPos.mX << ",y: " << mPlayerPos.mY << GameLib::endl;
-	GameLib::cout << "stepX: " << stepX << ",stepY: " << stepY << GameLib::endl;
-#endif
-
-	//预防穿墙(这里的碰撞检测需要考虑player的上下左右
-	//比如与右侧墙壁相撞应该用右侧位置，与左边墙壁相撞应该用左边位置)
-	auto nextPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
-	if (isCollisionWithPlayer(nextPos, mDirX, mDirY, ObjectType::OBJ_WALL)) {
-		return;
-	}
-
-	//预防穿过箱子
-	if (isCollisionWithPlayer(nextPos, mDirX, mDirY, ObjectType::OBJ_BLOCK)) {
-		int i = 0;
-	}
-
-	mPlayerPos = Vec2(mPlayerPos.mX + stepX, mPlayerPos.mY + stepY);
-}
-
-void State::drawMap()
+void State::drawBackground()
 {
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
@@ -539,7 +464,7 @@ void State::drawMap()
 	}
 }
 
-void State::drawPlayer()
+void State::drawForeground()
 {
 	drawCellAlphaTest(mPlayerPos, Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 }
