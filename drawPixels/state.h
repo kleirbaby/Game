@@ -21,7 +21,7 @@ namespace Utils
 
 		enum class ObjectType
 		{
-			OBJ_SPACE,
+			OBJ_FLOOR,
 			OBJ_WALL,
 			OBJ_POINT,
 			OBJ_BLOCK,
@@ -90,8 +90,8 @@ namespace Utils
 
 		//采用检测方式:只在前一帧没有按下才响应
 		bool canMovePerOn(int input);
-		void drawBackground();
-		void drawForeground();
+		void drawBackground(const Object& obj,const Coord& coord);
+		void drawForeground(const Object& obj, const Coord& coord);
 
 		int mWidth;
 		int mHeight;

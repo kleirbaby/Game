@@ -16,6 +16,8 @@ constexpr int PER_FRAME_MOVE = 1;
 constexpr int PER_CELL = 32;
 constexpr int LIMIT_FRAMES = PER_CELL / PER_FRAME_MOVE;
 
+static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord);
+
 State::State(const char* stageData, int size)
 	:mWidth(0), mHeight(0)
 {
@@ -24,29 +26,32 @@ State::State(const char* stageData, int size)
 
 void State::update()
 {
-	int dx = 0, dy = 0;
+	if (mPerMoveFrames >= LIMIT_FRAMES) {
+		mPerMoveFrames = 0;
+		for (int y = 0; y < mHeight; ++y) {
+			for (int x = 0; x < mWidth; ++x) {
+				mObjects(x, y).mCoord = Coord(0, 0);
+			}
+		}
+		return;
+	}
 
+	int dx = 0, dy = 0;
 	if (canMovePerOn('a')) {
 		dx -= 1;
-		mPerMoveFrames = 0;
 	}
 	else if (canMovePerOn('d')) {
 		dx += 1;
-		mPerMoveFrames = 0;
 	}
 	else if (canMovePerOn('w')) {
 		dy -= 1;
-		mPerMoveFrames = 0;
 	}
 	else if (canMovePerOn('s')) {
 		dy += 1;
-		mPerMoveFrames = 0;
 	}
 	
-	mPerMoveFrames++;
-
-	if (mPerMoveFrames != LIMIT_FRAMES) {
-		return;
+	if (mPerMoveFrames > 0) {
+		mPerMoveFrames++;
 	}
 	
 	Coord coord;
@@ -65,36 +70,39 @@ void State::update()
 
 	Object& obj = mObjects(x, y);
 	switch (obj.mType) {
-	case ObjectType::OBJ_SPACE:
+	case ObjectType::OBJ_FLOOR:
+	{
+		mPerMoveFrames = 1;
 		obj.move(ObjectType::OBJ_MAN, dx, dy);
-		ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+		ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_FLOOR : ObjectType::OBJ_POINT;
+		mObjects(coord.mX, coord.mY).move(type, 0, 0);
 		break;
-	case ObjectType::OBJ_WALL:
-		break;
+	}
 	case ObjectType::OBJ_POINT:
+	{
+		mPerMoveFrames = 1;
 		obj.move(ObjectType::OBJ_MAN_POINT, dx, dy);
-		ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-		mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+		ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_FLOOR : ObjectType::OBJ_POINT;
+		mObjects(coord.mX, coord.mY).move(type, 0, 0);
 		break;
+	}
 	case ObjectType::OBJ_BLOCK: 
 	{
-		if (mObjects(x + dx, y + dy).mType == ObjectType::OBJ_SPACE) {
+		mPerMoveFrames = 1;
+		if (mObjects(x + dx, y + dy).mType == ObjectType::OBJ_FLOOR) {
 			mObjects(x + dx, y + dy).move(ObjectType::OBJ_BLOCK,dx,dy);
 			obj.move(ObjectType::OBJ_MAN, dx, dy);
-			ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-			mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+			ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_FLOOR : ObjectType::OBJ_POINT;
+			mObjects(coord.mX, coord.mY).move(type, 0, 0);
 		}
 		else if (mObjects(x + dx, y + dy).mType == ObjectType::OBJ_POINT) {
 			mObjects(x + dx, y + dy).mType = ObjectType::OBJ_BLOCK_POINT;
 			obj.move(ObjectType::OBJ_MAN, dx, dy);
-			ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_SPACE : ObjectType::OBJ_POINT;
-			mObjects(coord.mX, coord.mY).move(type, -dx, -dy);
+			ObjectType type = mObjects(coord.mX, coord.mY).mType == ObjectType::OBJ_MAN ? ObjectType::OBJ_FLOOR : ObjectType::OBJ_POINT;
+			mObjects(coord.mX, coord.mY).move(type, 0, 0);
 		}
 		break;
 	}
-	case ObjectType::OBJ_BLOCK_POINT:
-		break;
 	default:
 		break;
 	}
@@ -102,13 +110,20 @@ void State::update()
 
 void State::draw()
 {
-	if (!mImage) {
-		assert(mImage);
-		return;
-	}
+	for (int y = 0; y < mHeight; ++y) {
+		for (int x = 0; x < mWidth; ++x) {
+			const Object& obj = mObjects(x, y);
+#if LOG
+			GameLib::cout << "(" << x << "," << y << ") = ";
+			GameLib::cout << (int)mObjects(x, y).mType << GameLib::endl;
+#endif
+			//绘制背景
+			drawBackground(obj, Coord(x, y));
 
-	drawBackground();
-	drawForeground();
+			//绘制前景
+			drawForeground(obj, Coord(x, y));
+		}
+	}
 
 	//测试
 	//test();
@@ -130,6 +145,7 @@ void State::loadTile()
 {
 	if (!mImage) {
 		mImage = std::make_shared<Image>();
+		assert(mImage);
 	}
 
 	File imgFile("nimotsuKunImage2.dds",IOMode::ReadOnly | IOMode::Binary);
@@ -213,22 +229,22 @@ bool State::parseMap(const char* stageData, int size)
 			obj = Object(ObjectType::OBJ_WALL);
 			break;
 		case ' ':
-			obj.type = ObjectType::OBJ_SPACE;
+			obj.mType = ObjectType::OBJ_FLOOR;
 			break;
 		case '.':
-			obj.type = ObjectType::OBJ_POINT;
+			obj.mType = ObjectType::OBJ_POINT;
 			break;
 		case 'o':
-			obj.type = ObjectType::OBJ_BLOCK;
+			obj.mType = ObjectType::OBJ_BLOCK;
 			break;
 		case 'O':
-			obj.type = ObjectType::OBJ_BLOCK_POINT;
+			obj.mType = ObjectType::OBJ_BLOCK_POINT;
 			break;
 		case 'p':
-			obj.type = ObjectType::OBJ_MAN;
+			obj.mType = ObjectType::OBJ_MAN;
 			break;
 		case 'P':
-			obj.type = ObjectType::OBJ_MAN_POINT;
+			obj.mType = ObjectType::OBJ_MAN_POINT;
 			break;
 		default:
 			invalid = true;
@@ -392,7 +408,7 @@ bool State::canMovePerOn(int input)
 	return false;
 }
 
-static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
+bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
 {
 	int x, y;
 
@@ -401,8 +417,8 @@ static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
 
 	for (y = 0; y < height; ++y) {
 		for (x = 0; x < width; ++x) {
-			if (objs(x, y).type == State::ObjectType::OBJ_MAN
-				|| objs(x, y).type == State::ObjectType::OBJ_MAN_POINT) {
+			if (objs(x, y).mType == State::ObjectType::OBJ_MAN
+				|| objs(x, y).mType == State::ObjectType::OBJ_MAN_POINT) {
 				break;
 			}
 		}
@@ -420,51 +436,42 @@ static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
 	return false;
 }
 
-void State::drawBackground()
+void State::drawBackground(const Object& obj, const Coord& coord)
 {
-	for (int y = 0; y < mHeight; ++y) {
-		for (int x = 0; x < mWidth; ++x) {
-			const Object& obj = mObjects(x, y);
-#if LOG
-			GameLib::cout << "(" << x << "," << y << ") = ";
-			GameLib::cout << (int)mObjects(x, y).type << GameLib::endl;
-#endif
-
-			//先绘制墙壁和地板
-			if (obj.type == ObjectType::OBJ_WALL) {
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_WALL) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-			}
-			else {
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_FLOOR) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-			}
-
-			//然后绘制箱子点人物这些表面目标
-			switch (obj.type) {
-			case ObjectType::OBJ_POINT:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				break;
-			case ObjectType::OBJ_BLOCK:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				break;
-			case ObjectType::OBJ_BLOCK_POINT:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				break;
-			case ObjectType::OBJ_MAN:
-				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				break;
-			case ObjectType::OBJ_MAN_POINT:
-				drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				//drawCellAlphaTest(Coord(x, y), Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
-				break;
-			default:
-				break;
-			}
-		}
+	if (obj.mType == ObjectType::OBJ_WALL) {
+		drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_WALL) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+	}
+	else if (obj.mType == ObjectType::OBJ_POINT 
+		|| obj.mType == ObjectType::OBJ_MAN_POINT
+		|| obj.mType == ObjectType::OBJ_BLOCK_POINT) {
+		drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_POINT) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+	}
+	else {
+		drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_FLOOR) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 	}
 }
 
-void State::drawForeground()
+void State::drawForeground(const Object& obj, const Coord& coord)
 {
-	drawCellAlphaTest(mPlayerPos, Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+	GameLib::cout << "State::drawForeground,obj(" << (int)obj.mType
+		<< ",[" << obj.mCoord.mX << "," << obj.mCoord.mY << "]);coord(" 
+		<< coord.mX << "," << coord.mY << ")." << GameLib::endl;
+
+	GameLib::cout << "State::drawForeground,mPerMoveFrames: " << (int)mPerMoveFrames << GameLib::endl;
+
+	const int& x = coord.mX;
+	const int& y = coord.mY;
+
+	int dxStep = x * PER_CELL - obj.mCoord.mX * PER_CELL + obj.mCoord.mX * mPerMoveFrames;
+	int dyStep = y * PER_CELL - obj.mCoord.mY * PER_CELL + obj.mCoord.mY * mPerMoveFrames;
+
+	Vec2 pos(dxStep,dyStep);
+	if (obj.mType == ObjectType::OBJ_MAN || obj.mType == ObjectType::OBJ_MAN_POINT) {
+		//drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+		drawCellAlphaTest(pos, Rect(static_cast<int>(TileID::IMG_PLAYER) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+	}
+	else if (obj.mType == ObjectType::OBJ_BLOCK || obj.mType == ObjectType::OBJ_BLOCK_POINT) {
+		//drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+		drawCellAlphaTest(pos, Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
+	}
 }
