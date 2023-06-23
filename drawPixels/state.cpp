@@ -15,7 +15,6 @@ using namespace Utils;
 constexpr int PER_FRAME_MOVE = 1;
 constexpr int PER_CELL = 32;
 constexpr int LIMIT_FRAMES = PER_CELL / PER_FRAME_MOVE;
-constexpr int MAX_PREVE_TIMES = 10;
 
 static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord);
 
@@ -27,9 +26,6 @@ State::State(const char* stageData, int size)
 
 void State::update()
 {
-	int fps = averageFps();
-	GameLib::cout << "State::update(),fps: " << fps << GameLib::endl;
-
 	if (mPerMoveFrames >= LIMIT_FRAMES) {
 		mPerMoveFrames = 0;
 		for (int y = 0; y < mHeight; ++y) {
@@ -480,22 +476,4 @@ void State::drawForeground(const Object& obj, const Coord& coord)
 		//drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 		drawCellAlphaTest(pos, Rect(static_cast<int>(TileID::IMG_BLOCK) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
 	}
-}
-
-int State::averageFps()
-{
-	static unsigned prevTimes[MAX_PREVE_TIMES] = { 0 };
-	unsigned curTime = GameLib::Framework::instance().time();
-
-	unsigned overTimes = curTime - prevTimes[0];
-	//更新最近10帧保存的时间
-	for (int idx = 0; idx < MAX_PREVE_TIMES - 1; ++idx) {
-		prevTimes[idx] = prevTimes[idx + 1];
-	}
-
-	prevTimes[MAX_PREVE_TIMES - 1] = curTime;
-
-	//计算平均值并求倒
-	int fps = (1000 * 10) / overTimes;
-	return fps;
 }

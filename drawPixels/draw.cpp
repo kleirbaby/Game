@@ -4,10 +4,18 @@
 #include <fstream>
 #include <algorithm>
 
+constexpr int MAX_PREVE_TIMES = 10;
+
 using namespace std;
 
 static void mainLoop();
 static bool readFile(const string& file,char*& buffer,int& size);
+
+//计算平均帧率
+static int averageFps();
+
+//固定到指定帧率
+static void fixFps(int fps);
 
 namespace GameLib
 {
@@ -19,6 +27,11 @@ namespace GameLib
 
 void mainLoop()
 {
+	fixFps(65);
+
+	int fps = averageFps();
+	GameLib::cout << "mainLoop,fps: " << fps << GameLib::endl;
+
 	static Utils::State* state = nullptr;
 	char* buffer = nullptr;
 	int size = 0;
@@ -77,4 +90,35 @@ bool readFile(const string& file, char*& buffer, int& size)
 	inputFile.read(buffer, size);
 
 	return true;
+}
+
+int averageFps()
+{
+	static unsigned prevTimes[MAX_PREVE_TIMES] = { 0 };
+	unsigned curTime = GameLib::Framework::instance().time();
+
+	unsigned overTimes = curTime - prevTimes[0];
+	//更新最近10帧保存的时间
+	for (int idx = 0; idx < MAX_PREVE_TIMES - 1; ++idx) {
+		prevTimes[idx] = prevTimes[idx + 1];
+	}
+
+	prevTimes[MAX_PREVE_TIMES - 1] = curTime;
+
+	//计算平均值并求倒
+	int fps = (1000 * 10) / overTimes;
+	return fps;
+}
+
+void fixFps(int fps)
+{
+	unsigned frameInterval = 1000 / fps; //ms
+
+	static unsigned prevFrameTime = 0;
+	unsigned endTime = prevFrameTime + frameInterval;//ms
+	unsigned curTime = 0;
+	while ((curTime = GameLib::Framework::instance().time()) < endTime) {
+		GameLib::Framework::instance().sleep(1);
+	}
+	prevFrameTime = curTime;
 }

@@ -93,9 +93,6 @@ namespace Utils
 		void drawBackground(const Object& obj,const Coord& coord);
 		void drawForeground(const Object& obj, const Coord& coord);
 
-		//计算平均帧率
-		int averageFps();
-
 		int mWidth;
 		int mHeight;
 
