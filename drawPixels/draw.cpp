@@ -115,9 +115,8 @@ void fixFps(int fps)
 	unsigned frameInterval = 1000 / fps; //ms
 
 	static unsigned prevFrameTime = 0;
-	unsigned endTime = prevFrameTime + frameInterval;//ms
 	unsigned curTime = 0;
-	while ((curTime = GameLib::Framework::instance().time()) < endTime) {
+	while (((curTime = GameLib::Framework::instance().time()) - prevFrameTime) < frameInterval) {
 		GameLib::Framework::instance().sleep(1);
 	}
 	prevFrameTime = curTime;
