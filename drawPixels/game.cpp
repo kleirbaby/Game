@@ -1,4 +1,4 @@
-#include "state.h"
+#include "game.h"
 #include "global.h"
 #include <algorithm>
 #include <iostream>
@@ -16,15 +16,15 @@ constexpr int PER_FRAME_MOVE = 1;
 constexpr int PER_CELL = 32;
 constexpr int LIMIT_FRAMES = PER_CELL / PER_FRAME_MOVE;
 
-static bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord);
+static bool findPlayer(const Array2D<Game::Object>& objs, Game::Coord& coord);
 
-State::State(const char* stageData, int size)
+Game::Game(const char* stageData, int size)
 	:mWidth(0), mHeight(0)
 {
 	parseMap(stageData, size); 
 }
 
-void State::update()
+void Game::update()
 {
 	if (mPerMoveFrames >= LIMIT_FRAMES) {
 		mPerMoveFrames = 0;
@@ -56,7 +56,7 @@ void State::update()
 	
 	Coord coord;
 	if (!findPlayer(mObjects, coord)) {
-		GameLib::cout << "State::update(),find player failure! coord: (" << coord.mX << "," << coord.mY << ")." << GameLib::endl;
+		GameLib::cout << "Game::update(),find player failure! coord: (" << coord.mX << "," << coord.mY << ")." << GameLib::endl;
 		return;
 	}
 
@@ -64,7 +64,7 @@ void State::update()
 	int y = coord.mY + dy;
 
 	if (x < 0 || x >= mWidth || y < 0 || y >= mHeight) {
-		GameLib::cout << "State::update(),over mObjects,x: " << x << ",y: " << y << GameLib::endl;
+		GameLib::cout << "Game::update(),over mObjects,x: " << x << ",y: " << y << GameLib::endl;
 		return;
 	}
 
@@ -108,7 +108,7 @@ void State::update()
 	}
 }
 
-void State::draw()
+void Game::draw()
 {
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
@@ -129,7 +129,7 @@ void State::draw()
 	//test();
 }
 
-bool State::hasCleared() const
+bool Game::hasCleared() const
 {
 	for (int y = 0; y < mHeight; ++y) {
 		for (int x = 0; x < mWidth; ++x) {
@@ -141,7 +141,7 @@ bool State::hasCleared() const
 	return true;
 }
 
-void State::loadTile()
+void Game::loadTile()
 {
 	if (!mImage) {
 		mImage = std::make_shared<Image>();
@@ -155,12 +155,12 @@ void State::loadTile()
 	}
 
 	if (!bLoadSuc) {
-		GameLib::cout << "State::loadTile,bLoadSuc == false!" << GameLib::endl;
+		GameLib::cout << "Game::loadTile,bLoadSuc == false!" << GameLib::endl;
 		assert(bLoadSuc);
 	}
 }
 
-void State::test()const
+void Game::test()const
 {
 	auto testImg = std::make_shared<Image>();
 
@@ -170,7 +170,7 @@ void State::test()const
 	drawCellAlphaBlend(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
 }
 
-bool State::parseMap(const char* stageData, int size)
+bool Game::parseMap(const char* stageData, int size)
 {
 	char szWidth[250] = {};
 	char szHeight[250] = {};
@@ -271,7 +271,7 @@ bool State::parseMap(const char* stageData, int size)
 	return true;
 }
 
-void State::drawPixel(const Coord& pos, unsigned color)const
+void Game::drawPixel(const Coord& pos, unsigned color)const
 {
 	unsigned* vram = GameLib::Framework::instance().videoMemory();
 	int windowWidth = GameLib::Framework::instance().width();
@@ -279,7 +279,7 @@ void State::drawPixel(const Coord& pos, unsigned color)const
 	vram[pos.mY * windowWidth +pos.mX] = color;
 }
 
-void State::drawCell(const Coord& pos, const Vec2& size, unsigned color)const
+void Game::drawCell(const Coord& pos, const Vec2& size, unsigned color)const
 {
 	unsigned* vram = GameLib::Framework::instance().videoMemory();
 	int windowWidth = GameLib::Framework::instance().width();
@@ -291,7 +291,7 @@ void State::drawCell(const Coord& pos, const Vec2& size, unsigned color)const
 	}
 }
 
-void State::drawCell(const Coord& pos, const Utils::Rect& rect, const Image& img)const
+void Game::drawCell(const Coord& pos, const Utils::Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -309,7 +309,7 @@ void State::drawCell(const Coord& pos, const Utils::Rect& rect, const Image& img
 	}
 }
 
-void State::drawCellAlphaTest(const Coord& pos, const Rect& rect, const Image& img)const
+void Game::drawCellAlphaTest(const Coord& pos, const Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -333,7 +333,7 @@ void State::drawCellAlphaTest(const Coord& pos, const Rect& rect, const Image& i
 	}
 }
 
-void State::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const
+void Game::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -357,7 +357,7 @@ void State::drawCellAlphaTest(const Vec2& pos, const Rect& rect, const Image& im
 	}
 }
 
-void State::drawCellAlphaBlend(const Coord& pos, const Rect& rect, const Image& img)const
+void Game::drawCellAlphaBlend(const Coord& pos, const Rect& rect, const Image& img)const
 {
 	if (!img.isValid()) {
 		return;
@@ -394,7 +394,7 @@ void State::drawCellAlphaBlend(const Coord& pos, const Rect& rect, const Image& 
 	}
 }
 
-bool State::canMovePerOn(int input)
+bool Game::canMovePerOn(int input)
 {
 	auto f = GameLib::Framework::instance();
 	auto s = f.isKeyOn(input);
@@ -408,7 +408,7 @@ bool State::canMovePerOn(int input)
 	return false;
 }
 
-bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
+bool findPlayer(const Array2D<Game::Object>& objs, Game::Coord& coord)
 {
 	int x, y;
 
@@ -417,8 +417,8 @@ bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
 
 	for (y = 0; y < height; ++y) {
 		for (x = 0; x < width; ++x) {
-			if (objs(x, y).mType == State::ObjectType::OBJ_MAN
-				|| objs(x, y).mType == State::ObjectType::OBJ_MAN_POINT) {
+			if (objs(x, y).mType == Game::ObjectType::OBJ_MAN
+				|| objs(x, y).mType == Game::ObjectType::OBJ_MAN_POINT) {
 				break;
 			}
 		}
@@ -429,14 +429,14 @@ bool findPlayer(const Array2D<State::Object>& objs, State::Coord& coord)
 	}
 
 	if (x < width && y < height) {
-		coord = State::Coord(x, y);
+		coord = Game::Coord(x, y);
 		return true;
 	}
 
 	return false;
 }
 
-void State::drawBackground(const Object& obj, const Coord& coord)
+void Game::drawBackground(const Object& obj, const Coord& coord)
 {
 	if (obj.mType == ObjectType::OBJ_WALL) {
 		drawCellAlphaTest(coord, Rect(static_cast<int>(TileID::IMG_WALL) * PER_CELL, 0, PER_CELL, PER_CELL), *mImage);
@@ -451,14 +451,14 @@ void State::drawBackground(const Object& obj, const Coord& coord)
 	}
 }
 
-void State::drawForeground(const Object& obj, const Coord& coord)
+void Game::drawForeground(const Object& obj, const Coord& coord)
 {
 #if LOG
-	GameLib::cout << "State::drawForeground,obj(" << (int)obj.mType
+	GameLib::cout << "Game::drawForeground,obj(" << (int)obj.mType
 		<< ",[" << obj.mCoord.mX << "," << obj.mCoord.mY << "]);coord(" 
 		<< coord.mX << "," << coord.mY << ")." << GameLib::endl;
 
-	GameLib::cout << "State::drawForeground,mPerMoveFrames: " << (int)mPerMoveFrames << GameLib::endl;
+	GameLib::cout << "Game::drawForeground,mPerMoveFrames: " << (int)mPerMoveFrames << GameLib::endl;
 #endif
 
 	const int& x = coord.mX;

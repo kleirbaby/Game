@@ -1,8 +1,9 @@
 #include "GameLib/Framework.h"
-#include "state.h"
+#include "game.h"
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include "statesdef.h"
 
 constexpr int MAX_PREVE_TIMES = 10;
 
@@ -12,10 +13,12 @@ static void mainLoop();
 static bool readFile(const string& file,char*& buffer,int& size);
 
 //计算平均帧率
-static int averageFps();
+static int averageFps(); 
 
 //固定到指定帧率
 static void fixFps(int fps);
+
+Sequence::State* gState = nullptr;
 
 namespace GameLib
 {
@@ -32,7 +35,7 @@ void mainLoop()
 	int fps = averageFps();
 	GameLib::cout << "mainLoop,fps: " << fps << GameLib::endl;
 
-	static Utils::State* state = nullptr;
+	static Utils::Game* state = nullptr;
 	char* buffer = nullptr;
 	int size = 0;
 
@@ -46,7 +49,7 @@ void mainLoop()
 		
 		GameLib::cout << "map data: \n" << buffer << GameLib::endl;
 		
-		state = new Utils::State(buffer, size);
+		state = new Utils::Game(buffer, size);
 		state->loadTile();
 		delete[] buffer;
 

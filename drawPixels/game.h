@@ -13,7 +13,7 @@ namespace Utils
 {
 	class Image;
 	//状态类
-	class State
+	class Game
 	{
 	public:
 		//该枚举值顺序要跟读取的图元顺序一致。
@@ -73,7 +73,7 @@ namespace Utils
 			Coord mCoord;
 		};
 
-		State(const char* stageData, int size);
+		Game(const char* stageData, int size);
 		void update();
 		void draw();
 		bool hasCleared() const;
