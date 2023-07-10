@@ -18,10 +18,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="draw.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="state.cpp">
+    <ClCompile Include="game.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="image.cpp">
@@ -33,12 +33,24 @@
     <ClCompile Include="ref.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="states\state.cpp">
+      <Filter>states</Filter>
+    </ClCompile>
+    <ClCompile Include="states\stagestate.cpp">
+      <Filter>states</Filter>
+    </ClCompile>
+    <ClCompile Include="states\titlestate.cpp">
+      <Filter>states</Filter>
+    </ClCompile>
+    <ClCompile Include="stringrenderer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="array2d.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="state.h">
+    <ClInclude Include="game.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="image.h">
@@ -62,12 +74,27 @@
     <ClInclude Include="global.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="states\state.h">
+      <Filter>states</Filter>
+    </ClInclude>
+    <ClInclude Include="states\stagestate.h">
+      <Filter>states</Filter>
+    </ClInclude>
+    <ClInclude Include="states\titlestate.h">
+      <Filter>states</Filter>
+    </ClInclude>
+    <ClInclude Include="statesdef.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stringrenderer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="states\stateparent.cpp">
+    <Text Include="states\gamestate.cpp">
       <Filter>states</Filter>
     </Text>
-    <Text Include="states\stateparent.h">
+    <Text Include="states\gamestate.h">
       <Filter>states</Filter>
     </Text>
   </ItemGroup>

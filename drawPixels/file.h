@@ -1,5 +1,6 @@
 #pragma once
 #include "noncopyable.h"
+#include "global.h"
 #include <string>
 #include <fstream>
 
@@ -24,7 +25,7 @@ namespace Utils
 	{
 	public:
 		File(const char* fileName, IOModes mode);
-		File(const std::string& fileName, IOModes mode);
+		File(const String& fileName, IOModes mode);
 		~File();
 
 		bool isValid();

@@ -9,7 +9,7 @@ File::File(const char* fileName, IOModes mode)
 {
 }
 
-File::File(const std::string& fileName, IOModes mode)
+File::File(const String& fileName, IOModes mode)
 	:mFile(fileName, mode2IOBase(mode))
 {
 }

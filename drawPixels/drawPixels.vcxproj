@@ -147,11 +147,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="draw.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="file.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="ref.cpp" />
-    <ClCompile Include="state.cpp" />
+    <ClCompile Include="game.cpp" />
+    <ClCompile Include="states\stagestate.cpp" />
+    <ClCompile Include="states\state.cpp" />
+    <ClCompile Include="states\titlestate.cpp" />
+    <ClCompile Include="stringrenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="array2d.h" />
@@ -161,12 +165,17 @@
     <ClInclude Include="noncopyable.h" />
     <ClInclude Include="rect.h" />
     <ClInclude Include="ref.h" />
-    <ClInclude Include="state.h" />
+    <ClInclude Include="game.h" />
+    <ClInclude Include="statesdef.h" />
+    <ClInclude Include="states\stagestate.h" />
+    <ClInclude Include="states\state.h" />
+    <ClInclude Include="states\titlestate.h" />
+    <ClInclude Include="stringrenderer.h" />
     <ClInclude Include="vector2.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="states\stateparent.cpp" />
-    <Text Include="states\stateparent.h" />
+    <Text Include="states\gamestate.cpp" />
+    <Text Include="states\gamestate.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
