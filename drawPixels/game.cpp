@@ -8,6 +8,7 @@
 #include "image.h"
 #include "file.h"
 #include "rect.h"
+#include "stringrenderer.h"
 
 using namespace std;
 using namespace Utils;
@@ -126,7 +127,7 @@ void Game::draw()
 	}
 
 	//≤‚ ‘
-	//test();
+	test();
 }
 
 bool Game::hasCleared() const
@@ -162,12 +163,14 @@ void Game::loadTile()
 
 void Game::test()const
 {
-	auto testImg = std::make_shared<Image>();
+	//auto testImg = std::make_shared<Image>();
 
-	File imgFile("forgroundW.dds", IOMode::ReadOnly | IOMode::Binary);
-	testImg->loadFile(imgFile);
-	//drawCell(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
-	drawCellAlphaBlend(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
+	//File imgFile("forgroundW.dds", IOMode::ReadOnly | IOMode::Binary);
+	//testImg->loadFile(imgFile);
+	////drawCell(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
+	//drawCellAlphaBlend(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
+
+	StringRenderer::getInstance().draw(0, 0, "Hello");
 }
 
 bool Game::parseMap(const char* stageData, int size)
