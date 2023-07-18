@@ -170,7 +170,7 @@ void Game::test()const
 	////drawCell(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
 	//drawCellAlphaBlend(Coord(0, 0), Rect(0, 0, 128, 128), *testImg);
 
-	StringRenderer::getInstance().draw(0, 0, "Hello");
+	StringRenderer::getInstance().draw(0, 0, "Hello",0x00ff00);
 }
 
 bool Game::parseMap(const char* stageData, int size)
