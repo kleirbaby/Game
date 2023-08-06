@@ -71,5 +71,25 @@ int main()
     printf("%p\n", &pi[0 + 2 * 4]);
     printf("%p\n", &pi[0] + 2 * 4);
 
+    printf("ch: %c -- %d\n",126,126);
     delete pi;
+
+    ///////////////////////////////////////////////
+    cout << "////////////////////////////////////" << endl;
+    unsigned c = 0x3f88ff;
+    unsigned r = c & 0xff0000;
+    unsigned g = c & 0x00ff00;
+    unsigned b = c & 0x0000ff;
+    printf("c: 0x%x\n",c);
+    printf("r: 0x%x\n",r);
+    printf("g: 0x%x\n",g);
+    printf("b: 0x%x\n",b);
+
+    cout << "////////////////////////////////////" << endl;
+    printf("c: 0x%x\n", c);
+    printf("r: 0x%x\n", r >> 16);
+    printf("g: 0x%x\n", g >> 8);
+    printf("b: 0x%x\n", b);
+
+    return 0;
 }

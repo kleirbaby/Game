@@ -55,7 +55,7 @@ namespace Utils
 				}
 				vram[(iY + dstY) * windowWidth + (iX + dstX)] = p;
 			}
-		}
+		}  
 	}
 
 	void StringRenderer::draw(int x, int y, const char* str)
@@ -110,12 +110,37 @@ namespace Utils
 		unsigned srcA = *srcPixsel & 0xff;//提取蓝色信息
 		unsigned dstR = *dstPixsel & 0xff0000;
 		unsigned dstG = *dstPixsel & 0x00ff00;
-		unsigned dstB = *dstPixsel & 0x0000ff;
+		unsigned dstB = *dstPixsel & 0x0000ff; 
 
 		unsigned r = (srcR - dstR) * srcA / 255 + dstR;
 		unsigned g = (srcG - dstG) * srcA / 255 + dstG;
 		unsigned b = (srcB - dstB) * srcA / 255 + dstB;
 
 		return (r & 0xff0000) | (g & 0x00ff00) | b;
+	}
+
+	unsigned StringRenderer::blendColor2(const unsigned* srcPixsel, const unsigned* dstPixsel, unsigned color)
+	{
+		uint8 alpha = (*srcPixsel & 0xff000000) >> 24;
+		double srcA = static_cast<double>(alpha / 255.0);
+		
+		//透明混合
+		double srcR = static_cast<double>((color & 0x00ff0000) >> 16);
+		double srcG = static_cast<double>((color & 0x0000ff00) >> 8);
+		double srcB = static_cast<double>(color & 0x000000ff);
+
+		double dstR = static_cast<double>((*dstPixsel & 0x00ff0000) >> 16);
+		double dstG = static_cast<double>((*dstPixsel & 0x0000ff00) >> 8);
+		double dstB = static_cast<double>(*dstPixsel & 0x000000ff);
+
+		double r = (srcR - (1.f - srcA) * dstR)/srcA;
+		double g = (srcG - (1.f - srcA) * dstG)/srcA;
+		double b = (srcB - (1.f - srcA) * dstB)/srcA;
+
+		unsigned c = static_cast<unsigned>(r) << 16;
+		c |= static_cast<unsigned>(g) << 8;
+		c |= static_cast<unsigned>(b);
+
+		return c;
 	}
 }//Utils

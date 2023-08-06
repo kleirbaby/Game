@@ -28,6 +28,7 @@ namespace Utils
 		//注意：这里的dstX、dstY、srcX、srcY都是像素坐标，并不是网格坐标。
 		void draw(int dstX, int dstY, int srcX, int srcY, const Image& img);
 		unsigned blendColor(const unsigned* srcPixsel,const unsigned* dstPixsel,unsigned color);
+		unsigned blendColor2(const unsigned* srcPixsel, const unsigned* dstPixsel, unsigned color);
 	private:
 		Image mFontImg;
 		unsigned mFontColor;
